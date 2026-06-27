@@ -7,7 +7,7 @@ import { useApp } from '@/context/AppContext';
 import { 
   Users, UserCheck, AlertTriangle, Clock, MapPin, 
   Search, Eye, Phone, PlusCircle, Mic, Upload, CheckCircle, 
-  Trash2, Shield, Settings, Info, Download, Volume2, RefreshCw 
+  Trash2, Shield, Settings, Info, Download, Volume2, RefreshCw, Share2 
 } from 'lucide-react';
 
 // Dynamically import map component with no SSR to prevent window definition crashes
@@ -55,6 +55,7 @@ export default function Home() {
     language: 'Marathi',
     last_seen_location: '',
     last_seen_zone: 'Zone Area 30 (Ramkund Ghat)',
+    last_seen_time: '',
     reporter_mobile: '',
     emergency_contact: '',
     physical_description: '',
@@ -83,10 +84,17 @@ export default function Home() {
     { id: '2', action: 'ZONE_GPS_UPDATE', target_table: 'volunteers', target_id: 'vol-32', details: 'Volunteer location synchronized near Ramkund', timestamp: new Date().toISOString() }
   ]);
 
-  // Load analytical summaries and cases on mount
+  // Load analytical summaries and cases on mount, with active sync polling (every 10s)
   useEffect(() => {
     fetchAnalytics();
     fetchCases();
+
+    const pollInterval = setInterval(() => {
+      fetchAnalytics();
+      fetchCases();
+    }, 10000); // Poll every 10 seconds to sync data across all zones
+
+    return () => clearInterval(pollInterval);
   }, [filterGender, filterAge, filterZone, filterStatus, searchQuery]);
 
   // Auto-scroll to form when opened
@@ -150,6 +158,7 @@ export default function Home() {
           language: formData.language,
           last_seen_location: formData.last_seen_location,
           last_seen_zone: formData.last_seen_zone,
+          last_seen_time: formData.last_seen_time || new Date().toISOString(),
           reporter_mobile: formData.reporter_mobile,
           emergency_contact: formData.emergency_contact,
           physical_description: formData.physical_description,
@@ -241,6 +250,12 @@ export default function Home() {
       finder_contact: ''
     });
     setPhotoPreview(null);
+  };
+
+  const shareOnWhatsApp = (c: any) => {
+    const text = `🚨 *KumbhConnect AI - EMERGENCY CASE BROADCAST* 🚨\n\n*Case ID:* ${c.case_id}\n*Name:* ${c.name || 'Unnamed Pilgrim'}\n*Gender:* ${c.gender}\n*Age:* ${c.age_band}\n*Last Seen Location:* ${c.last_seen_location}\n*Mela Zone:* ${c.last_seen_zone}\n*Physical Description:* ${c.physical_description}\n*Reporter Mobile:* ${c.reporter_mobile || 'N/A'}\n\nPlease help search. If sighted, report to Police Booth or Volunteers.`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
   };
 
   // Simulate Claude AI Voice Description Processing
@@ -628,13 +643,17 @@ export default function Home() {
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-xs font-bold text-orange-400">{c.case_id}</span>
                           <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-white/5">{c.status}</span>
+                          {c.last_seen_time && (new Date().getTime() - new Date(c.last_seen_time).getTime()) > 60 * 60 * 1000 && c.status === 'Pending' ? (
+                            <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded font-bold animate-pulse">URGENT: Lost > 1 Hr</span>
+                          ) : null}
                           {c.age_band.includes('61') || c.age_band.includes('71') || c.age_band.includes('80') ? (
                             <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Elderly</span>
                           ) : null}
                         </div>
                         <h5 className="text-sm font-bold text-white">{c.name || 'Unnamed Pilgrim'}</h5>
                         <p className="text-xs text-slate-400">
-                          <strong>Seen:</strong> {c.last_seen_location} ({c.last_seen_zone}) | <strong>Language:</strong> {c.language}
+                          <strong>Seen:</strong> {c.last_seen_location} ({c.last_seen_zone}) | <strong>Language:</strong> {c.language} 
+                          {c.last_seen_time ? ` | Time: ${new Date(c.last_seen_time).toLocaleTimeString()}` : ''}
                         </p>
                         <p className="text-xs text-slate-300 italic">
                           "{c.physical_description}"
@@ -642,6 +661,15 @@ export default function Home() {
                       </div>
                       
                       <div className="flex items-center gap-2 self-end md:self-auto">
+                        {/* WhatsApp Share */}
+                        <button
+                          onClick={() => shareOnWhatsApp(c)}
+                          className="p-2 bg-emerald-600/90 hover:bg-emerald-600 text-white rounded-lg text-xs flex items-center gap-1 font-bold"
+                          title="Share to WhatsApp"
+                        >
+                          <Share2 className="w-4 h-4" />
+                          <span>WhatsApp</span>
+                        </button>
                         {/* Voice Reader */}
                         <button
                           onClick={() => speakSummary(`Case ID ${c.case_id}. Missing pilgrim ${c.name || 'Unnamed'}. age band ${c.age_band}. last seen at ${c.last_seen_location}`)}
@@ -777,6 +805,16 @@ export default function Home() {
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
                     placeholder="Enter name (if known)"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1.5">Last Seen Time</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.last_seen_time}
+                    onChange={(e) => setFormData(prev => ({ ...prev, last_seen_time: e.target.value }))}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3.5 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
 

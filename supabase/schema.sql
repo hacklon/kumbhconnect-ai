@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS missing_persons (
     language VARCHAR(100),
     last_seen_location TEXT NOT NULL,
     last_seen_zone VARCHAR(100) REFERENCES zones(name),
+    last_seen_time TIMESTAMP WITH TIME ZONE,
     reporting_center VARCHAR(255),
     reporter_mobile VARCHAR(20), -- Can be NULL (20% missing in dataset)
     emergency_contact VARCHAR(20),

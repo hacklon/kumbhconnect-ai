@@ -162,6 +162,7 @@ export async function POST(request: Request) {
       language: body.language || 'Marathi',
       last_seen_location: body.last_seen_location,
       last_seen_zone: body.last_seen_zone || 'Zone Area 1',
+      last_seen_time: body.last_seen_time || new Date().toISOString(),
       reporting_center: body.reporting_center || 'Central Control Room',
       reporter_mobile: body.reporter_mobile || null,
       emergency_contact: body.emergency_contact || null,
