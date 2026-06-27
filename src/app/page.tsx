@@ -644,7 +644,7 @@ export default function Home() {
                           <span className="text-xs font-bold text-orange-400">{c.case_id}</span>
                           <span className="text-xs bg-slate-800 text-slate-300 px-2 py-0.5 rounded border border-white/5">{c.status}</span>
                           {c.last_seen_time && (new Date().getTime() - new Date(c.last_seen_time).getTime()) > 60 * 60 * 1000 && c.status === 'Pending' ? (
-                            <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded font-bold animate-pulse">URGENT: Lost > 1 Hr</span>
+                            <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded font-bold animate-pulse">URGENT: Lost &gt; 1 Hr</span>
                           ) : null}
                           {c.age_band.includes('61') || c.age_band.includes('71') || c.age_band.includes('80') ? (
                             <span className="text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">Elderly</span>
