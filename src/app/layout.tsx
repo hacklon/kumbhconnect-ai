@@ -7,10 +7,19 @@ export const metadata: Metadata = {
   title: "KumbhConnect AI - Nashik Kumbh Mela 2027",
   description: "Unified missing person registry and response platform for Nashik Kumbh Mela 2027, powered by Supabase and Claude AI.",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "KumbhConnect AI"
+  }
+};
+
+export const viewport = {
   themeColor: "#f97316",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
-  appleWebAppCapable: "yes",
-  appleWebAppStatusBarStyle: "default",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false
 };
 
 export default function RootLayout({

@@ -7,7 +7,7 @@ import { useApp } from '@/context/AppContext';
 import { 
   Users, UserCheck, AlertTriangle, Clock, MapPin, 
   Search, Eye, Phone, PlusCircle, Mic, Upload, CheckCircle, 
-  Trash2, Shield, Settings, Info, Download, Volume2 
+  Trash2, Shield, Settings, Info, Download, Volume2, RefreshCw 
 } from 'lucide-react';
 
 // Dynamically import map component with no SSR to prevent window definition crashes

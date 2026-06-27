@@ -41,7 +41,7 @@ export async function POST(request: Request) {
       photo_url: body.photo_url || null,
       notes: body.notes || '',
       matching_case_id: null,
-      status: 'Unmatched' as const
+      status: 'Unmatched' as 'Unmatched' | 'Probable Match'
     };
 
     // Auto matcher logic: search database for matching missing person reports
