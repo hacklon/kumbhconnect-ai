@@ -78,6 +78,12 @@ export default function Home() {
   const [trackingId, setTrackingId] = useState('');
   const [trackingError, setTrackingError] = useState('');
 
+  // CCTV Scan and local network broadcast states
+  const [activeCctvScanCase, setActiveCctvScanCase] = useState<any | null>(null);
+  const [cctvScanning, setCctvScanning] = useState(false);
+  const [cctvScanResult, setCctvScanResult] = useState<any | null>(null);
+  const [broadcastSuccess, setBroadcastSuccess] = useState(false);
+
   // Audit Logs (mock)
   const [auditLogs, setAuditLogs] = useState<any[]>([
     { id: '1', action: 'LOGIN_SUCCESS', target_table: 'users', target_id: 'admin-uuid', details: 'Admin logged into Nashik central node', timestamp: new Date().toISOString() },
@@ -238,6 +244,7 @@ export default function Home() {
       language: 'Marathi',
       last_seen_location: '',
       last_seen_zone: 'Zone Area 30 (Ramkund Ghat)',
+      last_seen_time: '',
       reporter_mobile: '',
       emergency_contact: '',
       physical_description: '',
@@ -256,6 +263,43 @@ export default function Home() {
     const text = `🚨 *KumbhConnect AI - EMERGENCY CASE BROADCAST* 🚨\n\n*Case ID:* ${c.case_id}\n*Name:* ${c.name || 'Unnamed Pilgrim'}\n*Gender:* ${c.gender}\n*Age:* ${c.age_band}\n*Last Seen Location:* ${c.last_seen_location}\n*Mela Zone:* ${c.last_seen_zone}\n*Physical Description:* ${c.physical_description}\n*Reporter Mobile:* ${c.reporter_mobile || 'N/A'}\n\nPlease help search. If sighted, report to Police Booth or Volunteers.`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
+  };
+
+  const startCctvScan = (c: any) => {
+    setActiveCctvScanCase(c);
+    setCctvScanning(true);
+    setCctvScanResult(null);
+    setBroadcastSuccess(false);
+    
+    // Simulate AI Vision scanning CCTV footage from specific timeframe
+    setTimeout(() => {
+      setCctvScanning(false);
+      setCctvScanResult({
+        cameraId: c.last_seen_zone.includes('Ramkund') ? 'Z30-C2' : 'Z1-C1',
+        cameraLocation: c.last_seen_zone,
+        spottedTime: c.last_seen_time 
+          ? new Date(new Date(c.last_seen_time).getTime() + 18 * 60 * 1000).toLocaleTimeString() 
+          : new Date().toLocaleTimeString(),
+        confidence: 91,
+        details: `Spotted target matching ${c.age_band} ${c.gender} profile wearing ${c.clothing_description || 'saree/kurta'}. Confused state, walking with crowd flow.`
+      });
+    }, 2000);
+  };
+
+  const broadcastAlert = () => {
+    if (!activeCctvScanCase) return;
+    setBroadcastSuccess(true);
+    setAuditLogs(prev => [
+      {
+        id: `audit-${Date.now()}`,
+        action: 'CCTV_BROADCAST',
+        target_table: 'notifications',
+        target_id: activeCctvScanCase.case_id,
+        details: `CCTV match broadcasted to nearest Pujaris, shops, and transit drivers in ${activeCctvScanCase.last_seen_zone}`,
+        timestamp: new Date().toISOString()
+      },
+      ...prev
+    ]);
   };
 
   // Simulate Claude AI Voice Description Processing
@@ -684,6 +728,12 @@ export default function Home() {
                         >
                           Locate
                         </button>
+                        <button
+                          onClick={() => startCctvScan(c)}
+                          className="px-3 py-1.5 bg-orange-600 hover:bg-orange-550 text-white rounded-lg text-xs font-semibold"
+                        >
+                          CCTV Scan
+                        </button>
                       </div>
                     </div>
                   ))
@@ -973,6 +1023,96 @@ export default function Home() {
               </div>
 
             </form>
+          </section>
+        )}
+
+        {/* CCTV Scan Modal Popup */}
+        {activeCctvScanCase && (
+          <section className="glass-panel p-6 space-y-6 relative border-t-4 border-orange-500 max-w-2xl mx-auto my-6">
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <Shield className="w-5 h-5 text-orange-400" />
+                CCTV Timeframe Scan & Broadcast
+              </h3>
+              <button 
+                onClick={() => setActiveCctvScanCase(null)} 
+                className="text-slate-400 hover:text-white font-bold text-sm px-3 py-1 bg-slate-850 rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-3 bg-slate-900/60 rounded-xl space-y-1 text-sm border border-white/5">
+                <p><strong>Target Name:</strong> {activeCctvScanCase.name || 'Unnamed Pilgrim'} ({activeCctvScanCase.case_id})</p>
+                <p><strong>Physical Description:</strong> {activeCctvScanCase.physical_description}</p>
+                <p><strong>Last Seen Zone:</strong> {activeCctvScanCase.last_seen_zone}</p>
+                <p><strong>Last Seen Time:</strong> {activeCctvScanCase.last_seen_time ? new Date(activeCctvScanCase.last_seen_time).toLocaleString() : 'Not Set'}</p>
+              </div>
+
+              {cctvScanning ? (
+                <div className="p-8 bg-slate-900/80 rounded-xl text-center space-y-4 border border-orange-500/20">
+                  <RefreshCw className="w-8 h-8 animate-spin text-orange-400 mx-auto" />
+                  <p className="text-sm font-semibold text-white animate-pulse">
+                    Scanning CCTV feeds near {activeCctvScanCase.last_seen_zone} for matching timeframe...
+                  </p>
+                  <p className="text-xs text-slate-400">Filtering video data 15m before and after last seen time.</p>
+                </div>
+              ) : cctvScanResult ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl space-y-2">
+                    <h4 className="text-sm font-bold text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle className="w-4 h-4" />
+                      Visual Match Spotted ({cctvScanResult.confidence}% Confidence)
+                    </h4>
+                    <div className="text-xs text-slate-300 space-y-1">
+                      <p><strong>Camera ID:</strong> {cctvScanResult.cameraId} ({cctvScanResult.cameraLocation})</p>
+                      <p><strong>Spotted Time:</strong> {cctvScanResult.spottedTime}</p>
+                      <p className="mt-2 text-white bg-slate-900/40 p-2.5 rounded italic">"{cctvScanResult.details}"</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-bold text-white">Broadcast Alerts to Ground Level Network</h4>
+                    <p className="text-xs text-slate-400">
+                      Circulate this spotted profile directly to Pujaris (priests), shops, and transit drivers operating near Camera {cctvScanResult.cameraId} in {cctvScanResult.cameraLocation}:
+                    </p>
+                    <div className="grid grid-cols-3 gap-2 text-[10px] text-slate-300 bg-slate-900/40 p-2.5 rounded-lg">
+                      <div>
+                        <strong className="text-orange-400 block mb-1">🏪 Local Shops:</strong>
+                        • Pooja Bhandar Stall 4<br/>
+                        • Ganga Sweets Stall 12
+                      </div>
+                      <div>
+                        <strong className="text-cyan-400 block mb-1">📿 Ghat Pujaris:</strong>
+                        • Pt. Harish Sharma<br/>
+                        • Pt. Pt. Suresh Joshi
+                      </div>
+                      <div>
+                        <strong className="text-yellow-400 block mb-1">🛺 Transit Drivers:</strong>
+                        • Auto-shuttle #12<br/>
+                        • Shuttle Bus #8
+                      </div>
+                    </div>
+
+                    {broadcastSuccess ? (
+                      <div className="p-3.5 bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-xl text-xs font-bold text-center">
+                        🚨 Circular Broadcasted! WhatsApp and SMS alerts sent to all Pujaris, shops, and transit drivers in the camera's vicinity.
+                      </div>
+                    ) : (
+                      <button
+                        onClick={broadcastAlert}
+                        type="button"
+                        className="w-full py-3 bg-cyan-600 hover:bg-cyan-550 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-1.5"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Broadcast Alert to Local Shops, Pujaris & Drivers
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </section>
         )}
 
